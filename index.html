@@ -1,0 +1,56 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>コメント集計・表彰ボード</title><style>
+:root{--bg:#12131c;--fg:#e8e8f0;--ac:#7aa2ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,"Hiragino Sans","Yu Gothic",sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:16px}h1{font-size:20px;margin:0 0 8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+textarea{width:100%;min-height:130px;background:transparent;color:inherit;border:1px solid color-mix(in srgb,var(--fg) 30%,transparent);border-radius:8px;padding:8px;font:inherit}
+button,select,input{background:var(--ac);color:var(--bg);border:0;border-radius:8px;padding:8px 12px;font:inherit;cursor:pointer}
+input[type=number]{width:90px;background:transparent;color:inherit;border:1px solid color-mix(in srgb,var(--fg) 30%,transparent)}
+select{background:transparent;color:inherit;border:1px solid var(--ac)}
+.board{margin-top:12px}.row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;margin:6px 0;background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.rk{width:36px;font-weight:700;color:var(--ac);text-align:center}.nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tt{font-size:13px;opacity:.85;border:1px solid var(--ac);border-radius:99px;padding:1px 8px}
+.ct{width:60px;text-align:right;font-variant-numeric:tabular-nums}.small{font-size:13px;opacity:.75}
+.bg{height:8px;border-radius:4px;background:var(--ac);opacity:.85}
+.bw{width:110px;flex:none}.tt{min-width:72px;text-align:center;flex:none}
+.r1{background:color-mix(in srgb,#ffd24a 22%,transparent);border:2px solid #ffd24a;font-size:20px;font-weight:700}
+.r2{background:color-mix(in srgb,#c9d1d9 18%,transparent);border:2px solid #c9d1d9;font-size:18px}
+.r3{background:color-mix(in srgb,#e08a4a 18%,transparent);border:2px solid #e08a4a;font-size:17px}
+.champ{text-align:center;font-size:22px;font-weight:800;padding:14px;margin:6px 0;border-radius:12px;border:2px dashed var(--ac)}
+.steps{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;font-size:14px}.steps span{border:1px solid var(--ac);border-radius:99px;padding:2px 12px}
+@media(max-width:560px){.row{flex-wrap:wrap}.nm{flex:1 1 55%}.bw{order:5;width:100%}.ct{width:auto;margin-left:auto}}
+</style></head><body><div class="wrap"><h1>コメント集計・表彰ボード</h1>
+<p class="small">コメントを貼ると、名前ごとに数えて順位と称号を出します。データは端末内だけで処理し、保存・送信しません。</p>
+<div class="steps"><span>① コメントを貼る</span><span>② 集計する</span><span>③ 順位表を配信画面に映す / CSV保存</span></div>
+<div class="bar"><label>テーマ <select id="th"></select></label><label>表示人数 <input type="number" id="top" value="10" min="1" max="50"></label>
+<label>形式 <select id="fmt"><option value="colon">名前: コメント</option><option value="tab">名前[タブ]コメント</option><option value="line">1行=1名前</option></select></label></div>
+<textarea id="in" placeholder="例)
+たろう: こんにちは
+はなこ: 初見です
+たろう: 草"></textarea>
+<div class="bar"><button id="go">集計する</button><button id="sample">サンプルを入れる</button><button id="csv">CSVで書き出す</button><button id="clr">クリア</button></div>
+<div id="out" class="board"></div></div><script>
+const THEMES=[["midnight", "#12131c", "#e8e8f0", "#7aa2ff"], ["sakura", "#fff0f4", "#4a2a35", "#e8668a"], ["mint", "#eafaf4", "#1f4a3c", "#2fb88a"], ["sunset", "#2a1620", "#ffe9d6", "#ff8a4c"], ["paper", "#f7f3e8", "#3a352b", "#a8742a"], ["neon", "#07070d", "#e6fff9", "#00f0c8"], ["ocean", "#0c2238", "#dcefff", "#3bb6ff"], ["forest", "#10241a", "#e3f3e6", "#7fd37a"], ["grape", "#201433", "#efe6ff", "#b98bff"], ["candy", "#fff5fb", "#42304a", "#ff6fb5"], ["mono", "#ffffff", "#111111", "#111111"], ["retro", "#2b2b2b", "#f0e6c8", "#e2b13c"], ["ice", "#f1f8ff", "#17324d", "#4aa3e0"], ["lava", "#1c0b0b", "#ffe3d1", "#ff4a2e"], ["sand", "#f3e9d9", "#4a3a22", "#c98f3a"], ["space", "#05060f", "#d9ddff", "#8f7bff"]];const TITLES=[[1, "見習い"], [5, "常連"], [15, "古参"], [40, "殿堂入り"], [100, "伝説"]];
+const $=id=>document.getElementById(id);const th=$("th");
+THEMES.forEach((t,i)=>{const o=document.createElement("option");o.value=i;o.textContent=t[0];th.appendChild(o)});
+function apply(){const t=THEMES[th.value];const r=document.documentElement.style;r.setProperty("--bg",t[1]);r.setProperty("--fg",t[2]);r.setProperty("--ac",t[3])}
+th.onchange=apply;apply();
+function title(n){let r="";for(const [m,t] of TITLES)if(n>=m)r=t;return r}
+let last=[];
+function parse(){const f=$("fmt").value,c={};for(const raw of $("in").value.split(/\r?\n/)){const l=raw.trim();if(!l)continue;let n;
+if(f==="colon"){const i=l.search(/[:：]/);n=i>0?l.slice(0,i).trim():null}else if(f==="tab"){n=l.split("\t")[0].trim()||null}else n=l;if(n)c[n]=(c[n]||0)+1}
+return Object.entries(c).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))}
+function render(){last=parse();const k=Math.max(1,Math.min(50,+$("top").value||10));const o=$("out");o.textContent="";
+if(!last.length){o.textContent="集計できる行がありません。形式の選択を確認してください。";return}
+const mx=last[0][1];const ch=document.createElement("div");ch.className="champ";ch.textContent="🏆 今回の1位:"+last[0][0]+"さん("+title(last[0][1])+"・"+last[0][1]+"件)";o.appendChild(ch);last.slice(0,k).forEach(([n,v],i)=>{const d=document.createElement("div");d.className="row"+(i<3?" r"+(i+1):"");
+const a=document.createElement("div");a.className="rk";a.textContent=i<3?["🥇","🥈","🥉"][i]:i+1;const b=document.createElement("div");b.className="nm";b.textContent=n;
+const t=document.createElement("span");t.className="tt";t.textContent=title(v);const c=document.createElement("div");c.className="ct";c.textContent=v+"件";
+const w=document.createElement("div");w.className="bw";const g=document.createElement("div");g.className="bg";g.style.width=Math.round(v/mx*100)+"%";w.appendChild(g);
+d.append(a,b,t,w,c);o.appendChild(d)});
+const s=document.createElement("p");s.className="small";s.textContent="合計 "+last.reduce((x,y)=>x+y[1],0)+" 件 / "+last.length+" 人";o.appendChild(s)}
+$("go").onclick=render;$("clr").onclick=()=>{$("in").value="";$("out").textContent="";last=[]};
+$("sample").onclick=()=>{$("fmt").value="colon";$("in").value="たろう: こんにちは\nはなこ: 初見です\nたろう: 草\nけん: がんばれ\nたろう: ナイス\nはなこ: かわいい\nけん: 8888";render()};
+$("csv").onclick=()=>{if(!last.length)render();if(!last.length)return;const q=s=>'"'+String(s).replace(/"/g,'""').replace(/^[=+\-@]/,"'$&")+'"';
+const t="順位,名前,件数,称号\n"+last.map(([n,v],i)=>[i+1,q(n),v,q(title(v))].join(",")).join("\n");
+const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+t],{type:"text/csv"}));a.download="ranking.csv";a.click()};
+</script></body></html>
