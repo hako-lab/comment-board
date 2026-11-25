@@ -17,7 +17,7 @@ select{background:transparent;color:inherit;border:1px solid var(--ac)}
 .r2{background:color-mix(in srgb,#c9d1d9 18%,transparent);border:2px solid #c9d1d9;font-size:18px}
 .r3{background:color-mix(in srgb,#e08a4a 18%,transparent);border:2px solid #e08a4a;font-size:17px}
 .champ{text-align:center;font-size:22px;font-weight:800;padding:14px;margin:6px 0;border-radius:12px;border:2px dashed var(--ac)}
-.steps{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;font-size:14px}.steps span{border:1px solid var(--ac);border-radius:99px;padding:2px 12px}
+body.show{background:transparent!important}body.show .wrap>*:not(#out){display:none!important}body.show .row,body.show .champ{opacity:0;transform:translateY(12px);transition:.5s}body.show .row.in,body.show .champ.in{opacity:1;transform:none}body.show .row{background:color-mix(in srgb,var(--bg) 82%,transparent)}body.show .small{display:none}.steps{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;font-size:14px}.steps span{border:1px solid var(--ac);border-radius:99px;padding:2px 12px}
 @media(max-width:560px){.row{flex-wrap:wrap}.nm{flex:1 1 55%}.bw{order:5;width:100%}.ct{width:auto;margin-left:auto}}
 </style></head><body><div class="wrap"><h1>コメント集計・表彰ボード</h1>
 <p class="small">コメントを貼ると、名前ごとに数えて順位と称号を出します。データは端末内だけで処理し、保存・送信しません。</p>
@@ -28,7 +28,7 @@ select{background:transparent;color:inherit;border:1px solid var(--ac)}
 たろう: こんにちは
 はなこ: 初見です
 たろう: 草"></textarea>
-<div class="bar"><button id="go">集計する</button><button id="sample">サンプルを入れる</button><button id="csv">CSVで書き出す</button><button id="clr">クリア</button></div>
+<div class="bar"><button id="go">集計する</button><button id="sample">サンプルを入れる</button><button id="csv">CSVで書き出す</button><button id="clr">クリア</button><button id="show">配信画面モード(OBS用・背景透明)</button></div>
 <div id="out" class="board"></div></div><script>
 const THEMES=[["midnight", "#12131c", "#e8e8f0", "#7aa2ff"], ["sakura", "#fff0f4", "#4a2a35", "#e8668a"], ["mint", "#eafaf4", "#1f4a3c", "#2fb88a"], ["sunset", "#2a1620", "#ffe9d6", "#ff8a4c"], ["paper", "#f7f3e8", "#3a352b", "#a8742a"], ["neon", "#07070d", "#e6fff9", "#00f0c8"], ["ocean", "#0c2238", "#dcefff", "#3bb6ff"], ["forest", "#10241a", "#e3f3e6", "#7fd37a"], ["grape", "#201433", "#efe6ff", "#b98bff"], ["candy", "#fff5fb", "#42304a", "#ff6fb5"], ["mono", "#ffffff", "#111111", "#111111"], ["retro", "#2b2b2b", "#f0e6c8", "#e2b13c"], ["ice", "#f1f8ff", "#17324d", "#4aa3e0"], ["lava", "#1c0b0b", "#ffe3d1", "#ff4a2e"], ["sand", "#f3e9d9", "#4a3a22", "#c98f3a"], ["space", "#05060f", "#d9ddff", "#8f7bff"]];const TITLES=[[1, "見習い"], [5, "常連"], [15, "古参"], [40, "殿堂入り"], [100, "伝説"]];
 const $=id=>document.getElementById(id);const th=$("th");
@@ -48,7 +48,9 @@ const t=document.createElement("span");t.className="tt";t.textContent=title(v);c
 const w=document.createElement("div");w.className="bw";const g=document.createElement("div");g.className="bg";g.style.width=Math.round(v/mx*100)+"%";w.appendChild(g);
 d.append(a,b,t,w,c);o.appendChild(d)});
 const s=document.createElement("p");s.className="small";s.textContent="合計 "+last.reduce((x,y)=>x+y[1],0)+" 件 / "+last.length+" 人";o.appendChild(s)}
-$("go").onclick=render;$("clr").onclick=()=>{$("in").value="";$("out").textContent="";last=[]};
+$("go").onclick=render;
+$("show").onclick=()=>{render();if(!last.length)return;document.body.classList.add("show");const els=[...document.querySelectorAll("#out .row")].reverse();const ch=document.querySelector("#out .champ");els.forEach((e,i)=>setTimeout(()=>e.classList.add("in"),600+i*900));if(ch)setTimeout(()=>ch.classList.add("in"),600+els.length*900)};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){document.body.classList.remove("show");document.querySelectorAll("#out .in").forEach(x=>x.classList.remove("in"))}});$("clr").onclick=()=>{$("in").value="";$("out").textContent="";last=[]};
 $("sample").onclick=()=>{$("fmt").value="colon";$("in").value="たろう: こんにちは\nはなこ: 初見です\nたろう: 草\nけん: がんばれ\nたろう: ナイス\nはなこ: かわいい\nけん: 8888";render()};
 $("csv").onclick=()=>{if(!last.length)render();if(!last.length)return;const q=s=>'"'+String(s).replace(/"/g,'""').replace(/^[=+\-@]/,"'$&")+'"';
 const t="順位,名前,件数,称号\n"+last.map(([n,v],i)=>[i+1,q(n),v,q(title(v))].join(",")).join("\n");
